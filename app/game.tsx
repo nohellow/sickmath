@@ -1,55 +1,103 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
+import { Slider } from "@/components/ui/slider"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import GameLoop from "./gameloop"
 
 const Game = () => {
-    const [gameStarted, setGameStarted] = useState(false);
-    const [pairs, setPairs] = useState<string[]>([]);
-    const operations = ['+', '-', '*'];
-    const [counter, setCounter] = useState(0); // Use state for counter
-    const maxOperations = 3; // Maximum number of operations
-    const [total, setTotal] = useState(0); // Use state for total
+    const [level, setLevel] = useState(0);
+    let gameLoop : GameLoop;
+    const [isRunning, setIsRunning] = useState(false);
+    const [currentNumber, setCurrentNumber] = useState(0);
+    const [currentMathOperator, setCurrentMathOperator] = useState("");
+    const [isTestIncrementing, setIsTestIncrementing] = useState(false);
+
+    const startGameLoop = () => {
+        gameLoop = new GameLoop(level, handleNumberAndOperatorUpdate);
+        gameLoop.start();
+        setIsRunning(true);
+        console.log("starting game loop");
+    };
+
+    const stopGameLoop = () => {
+        gameLoop?.stop();
+        setIsRunning(false);
+        handleLevelChange(0);
+        console.log("stopping game loop");
+    }
+
+    const toggleGame = async () => {
+        if (isRunning) {
+            console.log("stopping game loop");
+            stopGameLoop();
+        } else {
+            console.log("starting game loop");
+            startGameLoop();
+        }
+    };
+
+    const handleNumberAndOperatorUpdate = (number: number, operator: string) => {
+        setCurrentNumber(number);
+        setCurrentMathOperator(operator);
+    };
+
+    const handleLevelChange = (value: number) => {
+        if (gameLoop) {
+            setLevel(value);
+            console.log(`setting level to ${value}`);
+            gameLoop.setFrameTimeFromLevel(value);
+        }
+        console.log("NO GAME LOOP")
+    };
 
     useEffect(() => {
-        let interval: number;
-        if (gameStarted && counter < maxOperations) {
-            interval = setInterval(() => {
-                const operation = operations[Math.floor(Math.random() * operations.length)];
-                const number = Math.floor(Math.random() * 10) + 1;
-                // Replace the last pair instead of adding
-                if( operation == '-') { setTotal((prevTotal) => prevTotal - number); }
-                if( operation == '+') { setTotal((prevTotal) => prevTotal + number); }
-                if( operation == '*') { setTotal((prevTotal) => prevTotal * number); }
-                setPairs((prevPairs) => prevPairs.length === 0 ? [`${number}`] : [`${operation}${number}`]);
-                setCounter((prevCounter) => prevCounter + 1); // Update counter state
-                console.log(`setting pair: ${counter}/${maxOperations}`)
-            }, 1000);
+        let timeoutId: NodeJS.Timeout;
 
-        } else if (counter === maxOperations) {
-            // Calculate result after the last operation
-            setPairs(["", `Result: ${total}`]);
+        if (isTestIncrementing) {
+            startGameLoop();
+            let currentLevel : number = level;
+
+            const incrementLevel = () => {
+                if (!isTestIncrementing) {
+                    console.log(`Test is not incrementing`);
+                    return;
+                }
+
+                console.log(`incrementing level to ${currentLevel + 1}`);
+                currentLevel = currentLevel + 1;
+                handleLevelChange(currentLevel);
+
+                if (currentLevel < 100) {
+                    timeoutId = setTimeout(incrementLevel, 200);
+                }
+            };
+
+            incrementLevel();
         }
 
-        return () => clearInterval(interval);
-    }, [gameStarted, pairs]);
+        return () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                stopGameLoop();
+            }
+        };
+    }, [isTestIncrementing]);
 
-    const startGame = () => {
-        setGameStarted(true);
-        setPairs([]);
+    const testIncrementLevel = () => {
+        setIsTestIncrementing(!isTestIncrementing);
     };
 
     return (
-        <div className="flex flex-col items-center justify-center">
-            {!gameStarted && (
-                <button className="bg-green-500 text-white font-bold py-2 px-4 rounded" onClick={startGame}>
-                    Start
-                </button>
-            )}
-            <div>
-                {pairs.map((pair, index) => (
-                    <div key={index}>{pair}</div>
-                ))}
+        <div className="flex flex-col items-center justify-center w-full">
+            {isRunning ? <Badge className="text-3xl"><p className="math">{currentMathOperator}</p><p className="number">{currentNumber}</p></Badge> : null}
+            <div className="flex flex-row items-center justify-center w-full max-w-[400px]">
+                <Badge className="min-w-[100px] flex flex-row items-center justify-center" variant="outline"><p className="text-center">Level: {level}</p></Badge>
+                <Slider className="w-full p-[16px] ml-2" value={[level]} max={100} step={1} onValueChange={(values: number[]) => handleLevelChange(values[0])} />
             </div>
+            <Button onClick={toggleGame} className="flex text-2xl p-5 mb-4"><p>{isRunning ? "Stop Game" : "Start Game"}</p></Button>
+            <Button onClick={testIncrementLevel} className="flex text-1xl p-5"><p>{isTestIncrementing ? "Stop Test Increment Level" : "Test Increment Level"}</p></Button>
         </div>
     );
 };
