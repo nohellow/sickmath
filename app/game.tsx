@@ -8,18 +8,17 @@ import GameLoop from "@/app/gameloop";
 
 const Game = () => {
 
-    const [isRunning, setIsRunning] = useState(false);
+    const [isGameRunning, setIsGameRunning] = useState(false);
     const [gameLoop, setGameLoop] = useState<GameLoop | null>(null);
     const [level, setLevel] = useState(1);
-    let currentNumber = 0;
-    let currentMathOperator = "+";
-
+    const [currentNumber, setCurrentNumber] = useState(0);
+    const [currentMathOperator, setCurrentMathOperator] = useState("");
 
     const toggleGame = () => {
-        setIsRunning(prevState => {
+        setIsGameRunning(prevState => {
             const toggledIsRunningState = !prevState;
             if (toggledIsRunningState) {
-                setGameLoop(() => { const loop = new GameLoop(level); loop.start(); return loop; });
+                setGameLoop(() => { const loop = new GameLoop(level, handleNumberAndOperatorUpdate, handleGameEnd); loop.start(); return loop; });
                 gameLoop?.start();
             } else {
                 setGameLoop(() => { gameLoop?.stop(); return null; });
@@ -28,6 +27,15 @@ const Game = () => {
         });
    }
 
+    const handleGameEnd = () => {
+        setIsGameRunning(false);
+    };
+
+    const handleNumberAndOperatorUpdate = (number: number, operator: string) => {
+        setCurrentNumber(number);
+        setCurrentMathOperator(operator);
+    };
+
     const handleLevelChange = (value: number) => {
         setLevel(prevState => {
             gameLoop?.setLevel(value);
@@ -35,13 +43,43 @@ const Game = () => {
         });
     };
 
+    const decreaseLevel = () => {
+        setLevel(prevState => {
+            if ( prevState > 1)
+            {
+                const newState = prevState - 1;
+                gameLoop?.setLevel(newState);
+                return newState;
+            }
+            return prevState;
+        });
+    }
+
+    const increaseLevel = () => {
+        setLevel(prevState => {
+            const newState = prevState + 1;
+            gameLoop?.setLevel(newState);
+            return newState;
+        });
+    }
+
+
     return (
         <div className="flex flex-col items-center justify-center w-full">
-            <Badge className="text-3xl">
-                <p className="math">{currentMathOperator}</p>
-                <p className="number">{currentNumber}</p>
-            </Badge>
+            {( isGameRunning ?
+                <>
+                    <Badge className="mb-2">
+                        <p className="currentRound">{gameLoop.getCurrentRound()}</p>/
+                        <p className="totalRounds">{gameLoop.getTotalRounds()}</p>
+                    </Badge>
+                    <Badge className="text-3xl">
+                        <p className="math">{gameLoop?.getCurrentTask().split(" ")[0]}</p>
+                        <p className="number">{gameLoop?.getCurrentTask().split(" ")[1]}</p>
+                    </Badge>
+                </>
+            : null)}
             <div className="flex flex-row items-center justify-center w-full max-w-[400px]">
+                <span onClick={decreaseLevel} className="block mr-2 text-4xl font-bold cursor-pointer">-</span>
                 <Badge className="min-w-[100px] flex flex-row items-center justify-center" variant="outline">
                     <p className="text-center">Level: {level}</p>
                 </Badge>
@@ -52,9 +90,10 @@ const Game = () => {
                         step={1}
                         onValueChange={(values: number[]) => handleLevelChange(values[0])}
                 />
+                <span onClick={increaseLevel} className="block mr-2 text-3xl font-bold cursor-pointer">+</span>
             </div>
             <Button onClick={toggleGame} className="flex text-2xl p-5 mb-4">
-                <p>{isRunning ? "Stop Game" : "Start Game"}</p>
+                <p>{isGameRunning ? "Stop Game" : "Start Game"}</p>
             </Button>
             {/*<Button onClick={testIncrementLevel} className="flex text-1xl p-5"><p>{isTestIncrementing ? "Stop Test Increment Level" : "Test Increment Level"}</p></Button>*/}
         </div>
