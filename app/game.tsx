@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
 import GameLoop from "@/app/gameloop";
 
 const Game = () => {
@@ -13,12 +16,14 @@ const Game = () => {
     const [level, setLevel] = useState(1);
     const [currentNumber, setCurrentNumber] = useState(0);
     const [currentMathOperator, setCurrentMathOperator] = useState("");
+    const [isWaitingForUserInput, setIsWaitingForUserInput] = useState(false);
 
     const toggleGame = () => {
         setIsGameRunning(prevState => {
             const toggledIsRunningState = !prevState;
             if (toggledIsRunningState) {
                 setGameLoop(() => { const loop = new GameLoop(level, handleNumberAndOperatorUpdate, handleGameEnd); loop.start(); return loop; });
+                setIsWaitingForUserInput(false);
                 gameLoop?.start();
             } else {
                 setGameLoop(() => { gameLoop?.stop(); return null; });
@@ -29,6 +34,7 @@ const Game = () => {
 
     const handleGameEnd = () => {
         setIsGameRunning(false);
+        setIsWaitingForUserInput(true);
     };
 
     const handleNumberAndOperatorUpdate = (number: number, operator: string) => {
@@ -62,8 +68,6 @@ const Game = () => {
             return newState;
         });
     }
-
-
     return (
         <div className="flex flex-col items-center justify-center w-full">
             {( isGameRunning ?
@@ -78,6 +82,14 @@ const Game = () => {
                     </Badge>
                 </>
             : null)}
+            {(      isWaitingForUserInput
+                ?   <>
+                    <div className="flex justify-start items-center">
+                        <Label htmlFor="answer" className="text-2xl mr-2">Answer</Label>
+                        <Input type="number" id="answer" className="no-focus paragraph-regular max-w-[300px] light-border-2" autoFocus={true}/>
+                    </div>
+                    </>
+                :   null)}
             <div className="flex flex-row items-center justify-center w-full max-w-[400px]">
                 <span onClick={decreaseLevel} className="block mr-2 text-4xl font-bold cursor-pointer">-</span>
                 <Badge className="min-w-[100px] flex flex-row items-center justify-center" variant="outline">
